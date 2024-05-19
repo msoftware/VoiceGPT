@@ -24,11 +24,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.jentsch.voicegpt.adapters.ChatViewListAdapter;
 import com.jentsch.voicegpt.listener.ChatClickListener;
 import com.jentsch.voicegpt.db.entity.ChatMessage;
-import com.jentsch.voicegpt.views.ViewBuilder;
-import com.jentsch.voicegpt.views.ViewBuilderInterface;
 
 public class ChatView extends RelativeLayout implements ChatClickListener {
 
@@ -38,7 +37,6 @@ public class ChatView extends RelativeLayout implements ChatClickListener {
     private MicrophoneClickListener microphoneClickListener;
     private SendClickListener sendClickListener;
 
-    private ViewBuilderInterface viewBuilder;
     private FloatingActionButton sendButton;
     private FloatingActionButton micButton;
     private boolean previousFocusState = false, useEditorAction, isTyping;
@@ -70,12 +68,7 @@ public class ChatView extends RelativeLayout implements ChatClickListener {
     }
 
     public ChatView(Context context, AttributeSet attrs, int defStyleAttr) {
-        this(context, attrs, defStyleAttr, new ViewBuilder());
-    }
-
-    public ChatView(Context context, AttributeSet attrs, int defStyleAttr, ViewBuilderInterface viewBuilder) {
         super(context, attrs, defStyleAttr);
-        this.viewBuilder = viewBuilder;
         init(context, attrs, defStyleAttr);
     }
 
@@ -279,9 +272,9 @@ public class ChatView extends RelativeLayout implements ChatClickListener {
     }
 
     @Override
-    public void onChatItemClick(ChatMessage chatMessage) {
+    public void onChatItemClick(ChatMessage chatMessage, LinearProgressIndicator progressBar) {
         if (chatClickListener != null) {
-            chatClickListener.onChatItemClick(chatMessage);
+            chatClickListener.onChatItemClick(chatMessage, progressBar);
         }
     }
 

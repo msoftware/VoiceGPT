@@ -15,6 +15,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -26,8 +27,10 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.jentsch.voicegpt.db.entity.ChatMessage;
 import com.jentsch.voicegpt.listener.ChatClickListener;
 import com.jentsch.voicegpt.listener.SpeechRecognitionListener;
@@ -146,19 +149,47 @@ public class MainActivity extends AppCompatActivity implements ChatClickListener
         return false;
     }
 
-    public void speakWithElevenLabs(String msg) {
+    public void speakWithElevenLabs(String msg, LinearProgressIndicator progressBar) {
         try {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
             String elevenLabsApiKey = prefs.getString(SettingsActivity.ELEVENLABS_API_KEY, null);
             if (elevenLabsApiKey == null) {
                 Toast.makeText(this, "ELEVENLABS_API_KEY missing.", Toast.LENGTH_LONG).show();
             } else {
-
                 if (ElevenLabsWrapper.isSpeaking()) {
+                    progressBar.setVisibility(View.INVISIBLE);
+                    progressBar.setIndeterminate(false);
+                    progressBar.setIndicatorColor(Color.WHITE);
                     ElevenLabsWrapper.stopSpeaking();
                 } else {
                     try {
-                        ElevenLabsWrapper.speakAsync(MainActivity.this, elevenLabsApiKey, voiceId, msg, true);
+                        ElevenLabsWrapper.speakAsync(MainActivity.this, elevenLabsApiKey, voiceId, msg, true, new ElevenLabsSpeakListener() {
+                            @Override
+                            public void updateState(State state) {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        switch (state) {
+                                            case DOWNLOAD:
+                                                progressBar.setVisibility(View.VISIBLE);
+                                                progressBar.setIndeterminate(true);
+                                                progressBar.setIndicatorColor(Color.BLUE);
+                                                break;
+                                            case SPEAKING:
+                                                progressBar.setVisibility(View.VISIBLE);
+                                                progressBar.setIndeterminate(true);
+                                                progressBar.setIndicatorColor(Color.GREEN);
+                                                break;
+                                            case FINISHED:
+                                                progressBar.setVisibility(View.INVISIBLE);
+                                                progressBar.setIndeterminate(false);
+                                                progressBar.setIndicatorColor(Color.WHITE);
+                                                break;
+                                        }
+                                    }
+                                });
+                            }
+                        });
                     } catch (Exception e) {
                         Log.e(TAG, Log.getStackTraceString(e));
                     }
@@ -205,7 +236,7 @@ public class MainActivity extends AppCompatActivity implements ChatClickListener
             }
         });
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-        OpenAIWrapper.doAsyncChatCompletionRequest(prefs, messages.getMessages(), content -> {
+        OpenAIWrapper.doAsyncChatCompletionRequest(prefs, messages, content -> {
             ChatMessage assistantMessage = new ChatMessage(ASSISTANT.value(), content, System.currentTimeMillis());
             messages.add(assistantMessage);
             Log.d(TAG, "Recognition log ...");
@@ -223,6 +254,8 @@ public class MainActivity extends AppCompatActivity implements ChatClickListener
                 }
             });
         });
+        // refresh List (Chat Message Status has changed)
+        chatView.chatViewListAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -247,19 +280,40 @@ public class MainActivity extends AppCompatActivity implements ChatClickListener
     }
 
     @Override
-    public void onChatItemClick(com.jentsch.voicegpt.db.entity.ChatMessage chatMessage) {
+    public void onChatItemClick(ChatMessage chatMessage, LinearProgressIndicator progressBar) {
 
         if (prefs.getInt(ELEVENLABS_ENABLE, 0) == 1) {
-            speakWithElevenLabs(chatMessage.message);
+            speakWithElevenLabs(chatMessage.message, progressBar);
         } else {
-            HashMap<String, String> params = null;
+
             if (textToSpeech.isSpeaking()) {
+                progressBar.setVisibility(View.INVISIBLE);
+                progressBar.setIndeterminate(false);
+                progressBar.setIndicatorColor(Color.WHITE);
                 textToSpeech.stop();
             } else {
+                progressBar.setVisibility(View.VISIBLE);
+                progressBar.setIndicatorColor(Color.GREEN);
+                progressBar.setIndeterminate(true);
                 (new Thread() {
                     @Override
                     public void run() {
-                        textToSpeech.speak(chatMessage.message, TextToSpeech.QUEUE_FLUSH, params);
+                        Bundle params = null;
+                        String utteranceId = "1234";
+                        textToSpeech.speak(chatMessage.message, TextToSpeech.QUEUE_FLUSH, params, utteranceId);
+                        while (textToSpeech.isSpeaking()) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {}
+                        }
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                progressBar.setIndeterminate(false);
+                                progressBar.setVisibility(View.INVISIBLE);
+                                progressBar.setIndicatorColor(Color.WHITE);
+                            }
+                        });
                     }
                 }).start();
             }

@@ -19,51 +19,55 @@
         app:cardCornerRadius="8dp"
         app:cardUseCompatPadding="true">
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/linearLayout2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="start"
-            android:orientation="vertical"
-            android:padding="8dp">
+            android:padding="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/message_text_view"
+            app:layout_constraintTop_toTopOf="@+id/message_text_view">
 
-            <TextView
-                android:id="@+id/sender_text_view"
-                tools:text="Timi"
-                android:textSize="@dimen/default_message_text_size"
-                android:textColor="@color/default_message_color_rcv"
-                android:layout_gravity="center_vertical|start"
-                android:layout_width="wrap_content"
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressBar"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:visibility="visible"/>
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/message_text_view" />
+
+            <ImageView
+                android:id="@+id/message_is_chat"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/progressBar"
+                app:srcCompat="@android:drawable/btn_star_big_on" />
 
             <TextView
                 android:id="@+id/message_text_view"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start"
                 android:gravity="center_vertical|start"
                 android:textColor="@color/default_message_color_rcv"
                 android:textSize="@dimen/default_message_text_size"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
                 tools:text="My name is Timi and I am..." />
-
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="4dp" />
 
             <TextView
                 android:id="@+id/timestamp_text_view"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
                 android:gravity="center_vertical|end"
                 android:textColor="@color/default_tstamp_color_rcv"
                 android:textSize="@dimen/default_timestamp_text_size"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/progressBar"
                 tools:text="12:10 am" />
 
-        </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.cardview.widget.CardView>
 

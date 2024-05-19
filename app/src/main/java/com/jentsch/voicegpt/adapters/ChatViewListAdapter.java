@@ -9,11 +9,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.jentsch.voicegpt.R;
 import com.jentsch.voicegpt.listener.ChatClickListener;
 import com.jentsch.voicegpt.db.entity.ChatMessage;
@@ -74,8 +76,12 @@ public class ChatViewListAdapter extends RecyclerView.Adapter<ChatViewListAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ChatMessage chatMessage = chatMessages.get(position);
 
-        holder.senderTextView.setText(chatMessage.role);
         holder.messageTextView.setText(chatMessage.message);
+        if (chatMessage.isChatMessage()) {
+            holder.messageIsChat.setVisibility(View.VISIBLE);
+        } else {
+            holder.messageIsChat.setVisibility(View.INVISIBLE);
+        }
         holder.timestampTextView.setText(chatMessage.getFormattedTime());
         holder.clickListener = this;
         holder.chatMessage = chatMessage;
@@ -95,17 +101,20 @@ public class ChatViewListAdapter extends RecyclerView.Adapter<ChatViewListAdapte
     }
 
     @Override
-    public void onChatItemClick(ChatMessage chatMessage) {
+    public void onChatItemClick(ChatMessage chatMessage, LinearProgressIndicator progressBar) {
         if (chatClickListener != null) {
-            chatClickListener.onChatItemClick(chatMessage);
+            chatClickListener.onChatItemClick(chatMessage, progressBar);
         }
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
 
-        public TextView senderTextView;
+        com.google.android.material.progressindicator.LinearProgressIndicator pi;
+
+        public LinearProgressIndicator progressBar;
         public TextView messageTextView;
         public TextView timestampTextView;
+        public ImageView messageIsChat;
 
         public ChatMessage chatMessage;
         public ChatClickListener clickListener;
@@ -120,7 +129,7 @@ public class ChatViewListAdapter extends RecyclerView.Adapter<ChatViewListAdapte
             chatLayout.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    clickListener.onChatItemClick(chatMessage);
+                    clickListener.onChatItemClick(chatMessage, progressBar);
                 }
             });
             chatLayout.setLongClickable(true);
@@ -133,9 +142,10 @@ public class ChatViewListAdapter extends RecyclerView.Adapter<ChatViewListAdapte
                     return true;
                 }
             });
-            senderTextView = itemView.findViewById(R.id.sender_text_view);
             messageTextView = itemView.findViewById(R.id.message_text_view);
             timestampTextView = itemView.findViewById(R.id.timestamp_text_view);
+            messageIsChat = itemView.findViewById(R.id.message_is_chat);
+            progressBar = itemView.findViewById(R.id.progressBar);
         }
     }
 }

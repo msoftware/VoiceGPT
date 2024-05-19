@@ -18,6 +18,9 @@ public class ChatMessage {
     public String role;
 
     @Ignore
+    public boolean isChatMessage = true;
+
+    @Ignore
     public ChatMessage() {
     }
 
@@ -49,6 +52,14 @@ public class ChatMessage {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public boolean isChatMessage() {
+        return isChatMessage;
+    }
+
+    public void setChatMessage(boolean chatMessage) {
+        isChatMessage = chatMessage;
     }
 
     public String getFormattedTime() {

@@ -3,6 +3,9 @@ package com.jentsch.voicegpt;
 import android.content.Context;
 import android.media.MediaPlayer;
 import android.util.Log;
+import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
 
 import org.json.JSONObject;
 
@@ -25,16 +28,16 @@ public class ElevenLabsWrapper {
 
     private static boolean isRunning = false;
 
-    public static synchronized void speakAsync(Context context, String apiKey, String voiceId, String msg, boolean cache) {
+    public static synchronized void speakAsync(Context context, String apiKey, String voiceId, String msg, boolean cache, ElevenLabsSpeakListener listener) {
         (new Thread() {
             @Override
             public void run() {
-                speak(context, apiKey, voiceId, msg, cache);
+                speak(context, apiKey, voiceId, msg, cache, listener);
             }
         }).start();
     }
 
-    public static void speak(Context context, String apiKey, String voiceId, String msg, boolean cache) {
+    public static void speak(Context context, String apiKey, String voiceId, String msg, boolean cache, ElevenLabsSpeakListener listener) {
         isRunning = true;
         int responseCode= 0;
         try {
@@ -44,11 +47,20 @@ public class ElevenLabsWrapper {
             if (cache) {
                 if (downloadFile.exists()) {
                     // Use Cache File
+                    if (listener != null) {
+                        listener.updateState(ElevenLabsSpeakListener.State.SPEAKING);
+                    }
                     playMediaFile(downloadFile);
+                    if (listener != null) {
+                        listener.updateState(ElevenLabsSpeakListener.State.FINISHED);
+                    }
                     return;
                 }
             }
 
+            if (listener != null) {
+                listener.updateState(ElevenLabsSpeakListener.State.DOWNLOAD);
+            }
             URL url = new URL(ELEVENLABS_API_URL+voiceId);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestMethod("POST");
@@ -81,6 +93,9 @@ public class ElevenLabsWrapper {
                     fileOutputStream.write(buffer, 0, bytesRead);
                 }
                 fileOutputStream.close();
+                if (listener != null) {
+                    listener.updateState(ElevenLabsSpeakListener.State.SPEAKING);
+                }
                 playMediaFile(downloadFile);
                 if (!cache) {
                     downloadFile.delete();
@@ -88,10 +103,18 @@ public class ElevenLabsWrapper {
             } else {
                 String responseMessage = con.getResponseMessage();
                 Log.d(TAG, responseMessage);
+
+                int finalResponseCode = responseCode;
+                ContextCompat.getMainExecutor(context).execute(()  -> {
+                    Toast.makeText(context, "ElevenLabs Error Code " + finalResponseCode, Toast.LENGTH_LONG).show();
+                });
             }
             con.disconnect();
         } catch (Exception e) {
             Log.e(TAG, Log.getStackTraceString(e));
+        }
+        if (listener != null) {
+            listener.updateState(ElevenLabsSpeakListener.State.FINISHED);
         }
         isRunning = false;
     }

@@ -3,28 +3,39 @@ package com.jentsch.voicegpt;
 import android.content.SharedPreferences;
 
 import com.jentsch.voicegpt.db.entity.ChatMessage;
+import com.jentsch.voicegpt.util.TokenManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class OpenAIWrapper {
 
-    public static void doAsyncChatCompletionRequest(SharedPreferences prefs, List<ChatMessage> messages, OpenAI.ChatCompletionChunkResponseListener listener)
+    public static void doAsyncChatCompletionRequest(SharedPreferences prefs, ChatMessageStore messageStore, OpenAI.ChatCompletionChunkResponseListener listener)
     {
+        List<ChatMessage> allMessages = messageStore.getMessages();
+        List<ChatMessage> chatMessages = TokenManager.reduceMessages(allMessages,4000);
+
+        markChatMessages (allMessages, chatMessages);
+
         List<com.theokanning.openai.completion.chat.ChatMessage> openAIMessages = new ArrayList<>();
 
-        // Convert entity.ChatMessage to openai....ChatMessage
-        int anz = messages.size();
-
-        // TODO Count tokens (MAX 4096)
-        int start = Math.max(0, anz - 4);
-        for (int i = start; i < anz; i++) {
+        for (int i = 0; i < chatMessages.size(); i++) {
             com.theokanning.openai.completion.chat.ChatMessage chatMessage = new com.theokanning.openai.completion.chat.ChatMessage();
-            chatMessage.setContent(messages.get(i).message);
-            chatMessage.setRole(messages.get(i).role);
+            chatMessage.setContent(chatMessages.get(i).message);
+            chatMessage.setRole(chatMessages.get(i).role);
             openAIMessages.add(chatMessage);
         }
 
         OpenAI.doAsyncChatCompletionRequest(prefs, openAIMessages, listener);
+    }
+
+    private static void markChatMessages(List<ChatMessage> allMessages, List<ChatMessage> chatMessages) {
+        for (ChatMessage message : allMessages) {
+            if (chatMessages.contains(message)) {
+                message.setChatMessage(true);
+            } else {
+                message.setChatMessage(false);
+            }
+        }
     }
 }
